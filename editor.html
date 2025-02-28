@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Графический редактор билетов</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Определяем CSS переменные для светлой темы */
+    :root {
+      --bg-color: #f0f0f0;
+      --text-color: #333;
+      --block-bg: rgba(255,255,255,0.8);
+      --accent-color: #4CAF50;
+      --button-bg: var(--accent-color);
+      --button-text: #fff;
+      --input-bg: #fff;
+      --input-border: #ccc;
+    }
+    /* Переменные для тёмной темы */
+    body.dark {
+      --bg-color: #222;
+      --text-color: #eee;
+      --block-bg: rgba(0, 0, 0, 0.7);
+      --accent-color: #90ee90;
+      --button-bg: var(--accent-color);
+      --button-text: #000;
+      --input-bg: #333;
+      --input-border: #555;
+    }
+    /* Сброс и базовые стили */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    /* Фон с заблюренной и затемнённой картинкой */
+    #bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://s.kaskus.id/images/2018/05/01/9911867_201805010420470219.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: blur(5px);
+      z-index: -1;
+    }
+    /* Блоки редактора и боковой панели */
+    #editor, #sidebar {
+      background: var(--block-bg);
+      border-radius: 8px;
+      margin: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: background 0.3s ease;
+    }
+    /* Убраны эффекты наведения для блоков #editor и #sidebar */
+    
+    #editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    #sidebar {
+      width: 300px;
+      overflow-y: auto;
+    }
+    /* Заголовок и кнопка переключения темы */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h2 {
+      margin: 0;
+      font-weight: 500;
+    }
+    /* Стили для кнопок */
+    button, .file-label {
+      padding: 8px 12px;
+      margin: 5px 5px 5px 0;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover, .file-label:hover {
+      background-color: #333;
+    }
+    /* Стилизация input типа file */
+    .file-label {
+      display: inline-block;
+      position: relative;
+      overflow: hidden;
+    }
+    .file-label input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+      height: 100%;
+      width: 100%;
+    }
+    /* Стили формы */
+    form label {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    form input[type="text"],
+    form input[type="number"],
+    form textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      transition: border-color 0.3s ease;
+    }
+    form input[readonly] {
+      background-color: #e0e0e0;
+      cursor: not-allowed;
+    }
+    /* Блоки для вопросов */
+    .question {
+      border: 1px solid var(--input-border);
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      background: var(--input-bg);
+      transition: background 0.3s ease;
+    }
+    .question input[type="text"] {
+      margin-top: 5px;
+    }
+    /* Элементы списка билетов */
+    .ticket-item {
+      padding: 10px;
+      border: 1px solid transparent;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    /* Убраны эффекты наведения для элементов списка билетов */
+    .ticket-item.active {
+      background-color: rgba(0,0,0,0.2);
+    }
+    /* Анимация появления */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #editor, #sidebar {
+      animation: fadeIn 0.5s ease-out;
+    }
+    /* Кнопка переключения темы */
+    #themeToggle {
+      background-color: transparent;
+      border: 2px solid var(--button-bg);
+      border-radius: 20px;
+      padding: 5px 10px;
+      color: var(--button-bg);
+      font-weight: 500;
+    }
+    #themeToggle:hover {
+      background-color: var(--button-bg);
+      color: var(--button-text);
+    }
+  </style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="editor">
+    <div class="header">
+      <h2>Редактирование билета</h2>
+      <button id="themeToggle">Сменить тему</button>
+    </div>
+    <div>
+      <button id="newTicketBtn">Новый билет</button>
+      <button id="exportBtn">Выгрузить JSON</button>
+      <label class="file-label">Импортировать JSON
+        <input type="file" id="fileInput" accept=".json">
+      </label>
+    </div>
+    <form id="ticketForm">
+      <label for="ticketId">ID</label>
+      <input type="number" id="ticketId" readonly>
+      
+      <label for="ticketName">Название</label>
+      <input type="text" id="ticketName" readonly>
+      
+      <label for="ticketDescription">Описание</label>
+      <textarea id="ticketDescription" rows="3"></textarea>
+      
+      <div id="questionsContainer">
+        <h3>Вопросы</h3>
+      </div>
+      <button type="button" id="addQuestionBtn">Добавить вопрос</button>
+      <br>
+      <button type="button" id="saveTicketBtn">Сохранить билет</button>
+    </form>
+  </div>
+  <div id="sidebar">
+    <h3>Билеты</h3>
+    <div id="ticketsList"></div>
+  </div>
+
+  <script>
+    // Исходные данные билетов
+    let tickets = [
+      {
+        "id": 1,
+        "name": "Билет №{id}",
+        "description": "Что такое \"Metagaming\"?",
+        "questions": [
+          { "question": "Использование неигровой информацией", "correct": true },
+          { "question": "Смена персонажа в игре" },
+          { "question": "Игра вне роли" },
+          { "question": "Создание мета-сюжетов" }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Билет №{id}",
+        "description": "Как правильно использовать команду /me?",
+        "questions": [
+          { "question": "/me идет домой." },
+          { "question": "/me идет домой", "correct": true },
+          { "question": "/me Идет домой." },
+          { "question": "/me иду домой." }
+        ]
+      }
+    ];
+
+    let currentTicket = null;
+    const ticketsListElem = document.getElementById('ticketsList');
+    const questionsContainer = document.getElementById('questionsContainer');
+
+    function renderTicketsList() {
+      ticketsListElem.innerHTML = '';
+      tickets.forEach(ticket => {
+        const div = document.createElement('div');
+        div.className = 'ticket-item';
+        div.textContent = 'Билет ' + ticket.id;
+        div.addEventListener('click', () => {
+          currentTicket = ticket;
+          renderTicketForm(ticket);
+          document.querySelectorAll('.ticket-item').forEach(item => item.classList.remove('active'));
+          div.classList.add('active');
+        });
+        ticketsListElem.appendChild(div);
+      });
+    }
+
+    function renderTicketForm(ticket) {
+      document.getElementById('ticketId').value = ticket.id;
+      document.getElementById('ticketName').value = ticket.name;
+      document.getElementById('ticketDescription').value = ticket.description;
+      questionsContainer.innerHTML = '<h3>Вопросы</h3>';
+      ticket.questions.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.className = 'question';
+        
+        const labelQuestion = document.createElement('label');
+        labelQuestion.textContent = 'Вопрос ' + (index + 1);
+        div.appendChild(labelQuestion);
+        
+        const inputQuestion = document.createElement('input');
+        inputQuestion.type = 'text';
+        inputQuestion.value = q.question;
+        inputQuestion.addEventListener('input', (e) => {
+          ticket.questions[index].question = e.target.value;
+        });
+        div.appendChild(inputQuestion);
+        
+        const labelCorrect = document.createElement('label');
+        labelCorrect.textContent = ' Правильный? ';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!q.correct;
+        checkbox.addEventListener('change', (e) => {
+          ticket.questions[index].correct = e.target.checked;
+        });
+        labelCorrect.appendChild(checkbox);
+        div.appendChild(labelCorrect);
+        
+        questionsContainer.appendChild(div);
+      });
+    }
+
+    document.getElementById('addQuestionBtn').addEventListener('click', () => {
+      if (!currentTicket) return alert('Сначала выберите билет для редактирования.');
+      currentTicket.questions.push({ question: '', correct: false });
+      renderTicketForm(currentTicket);
+    });
+
+    document.getElementById('saveTicketBtn').addEventListener('click', () => {
+      if (!currentTicket) return alert('Нет билета для сохранения.');
+      currentTicket.description = document.getElementById('ticketDescription').value;
+      alert('Билет сохранён!');
+      renderTicketsList();
+    });
+
+    document.getElementById('newTicketBtn').addEventListener('click', () => {
+      const newId = tickets.length ? Math.max(...tickets.map(t => t.id)) + 1 : 1;
+      const newTicket = {
+        id: newId,
+        name: 'Билет №{id}',
+        description: '',
+        questions: []
+      };
+      tickets.push(newTicket);
+      renderTicketsList();
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const dataStr = JSON.stringify(tickets, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "tickets.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedTickets = JSON.parse(e.target.result);
+          if (Array.isArray(importedTickets)) {
+            tickets = importedTickets;
+            currentTicket = null;
+            renderTicketsList();
+            questionsContainer.innerHTML = '<h3>Вопросы</h3>';
+            alert('Файл успешно импортирован!');
+          } else {
+            alert('Неверный формат файла.');
+          }
+        } catch (error) {
+          alert('Ошибка при чтении файла: ' + error.message);
+        }
+      }
+      reader.readAsText(file);
+      event.target.value = "";
+    });
+
+    // Переключение темы
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+    });
+
+    renderTicketsList();
+  </script>
+</body>
+</html>
